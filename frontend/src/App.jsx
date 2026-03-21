@@ -3,6 +3,10 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { api, setToken, getToken, createWS } from './api'
 import SuperAdminPage from './pages/SuperAdmin'
 import NetworkMapPage from './pages/NetworkMap'
+import LinksPage from './pages/Links'
+import ONTDashboard from './pages/ONTDashboard'
+import SLAPage from './pages/SLA'
+import DeviceDetail from './pages/DeviceDetail'
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const C = {
@@ -448,7 +452,7 @@ function OverviewPage({ devices, links, alerts, liveMetrics, pingData }) {
 // ════════════════════════════════════════════════════════════════════════════
 // DEVICES PAGE
 // ════════════════════════════════════════════════════════════════════════════
-function DevicesPage({ devices, setDevices, toast, role }) {
+function DevicesPage({ devices, setDevices, toast, role, onDetail }) {
   const [form,setForm]   = useState(null)
   const [confirm,setConfirm] = useState(null)
   const [search,setSearch]   = useState('')
@@ -819,6 +823,7 @@ export default function App() {
   const [now,setNow]           = useState(new Date())
   const [toastMsg,setToastMsg] = useState(null)
   const [wsStatus,setWsStatus] = useState('offline')
+  const [deviceDetail,setDeviceDetail] = useState(null)
   const wsCleanup              = useRef(null)
 
   const toast = (msg,type='success') => setToastMsg({msg,type})
@@ -879,6 +884,8 @@ export default function App() {
     {id:'overview', label:'Visão Geral'},
     {id:'devices',  label:'Dispositivos'},
     {id:'links',    label:'Links'},
+    {id:'onts',     label:'ONTs GPON'},
+    {id:'sla',      label:'SLA'},
     {id:'users',    label:'Usuários', adminOnly:true},
     {id:'ai',       label:'⚡ Maxxi NOC'},
     {id:'map',        label:'🗺️ Mapa de Rede'},
@@ -935,8 +942,11 @@ export default function App() {
       {/* Content */}
       <div style={{maxWidth:1440,margin:'0 auto',padding:18}}>
         {tab==='overview' && <OverviewPage devices={devices} links={links} alerts={alerts} liveMetrics={liveMetrics} pingData={pingData}/>}
-        {tab==='devices'  && <DevicesPage  devices={devices} setDevices={setDevices} toast={toast} role={user.role}/>}
-        {tab==='links'    && <LinksPage    links={links} setLinks={setLinks} pingData={pingData} toast={toast} role={user.role}/>}
+        {tab==='devices'  && <DevicesPage  devices={devices} setDevices={setDevices} toast={toast} role={user.role} onDetail={setDeviceDetail}/>}
+        {tab==='links'    && <LinksPage    toast={toast}/>}
+        {tab==='onts'     && <ONTDashboard  toast={toast}/>}
+        {tab==='sla'      && <SLAPage       toast={toast} role={user.role}/>}
+        {deviceDetail     && <DeviceDetail  device={deviceDetail} onClose={()=>setDeviceDetail(null)}/>}
         {tab==='users'    && <UsersPage    toast={toast} role={user.role}/>}
         {tab==='ai'       && <AIPage devices={devices} links={links}/>}
         {tab==='map'        && <NetworkMapPage toast={toast} role={user.role} primaryColor={user.primaryColor}/>}

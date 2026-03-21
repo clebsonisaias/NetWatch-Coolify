@@ -67,6 +67,24 @@ export const api = {
   // Ping
   ping: (ip) => req('GET', `/ping/${ip}`),
 
+
+  // Metrics / History
+  getDeviceHistory:   (id, hours=6) => req('GET', `/metrics/device/${id}/history?hours=${hours}`),
+  getDeviceInterfaces:(id, hours=1) => req('GET', `/metrics/device/${id}/interfaces?hours=${hours}`),
+  getSLA:             (days=30)     => req('GET', `/metrics/sla?days=${days}`),
+  getSLATimeline:     (id, days=30) => req('GET', `/metrics/sla/device/${id}/timeline?days=${days}`),
+  getPPPoE:           ()            => req('GET', '/metrics/pppoe'),
+  getONTs:            ()            => req('GET', '/metrics/onts'),
+  getLinksMetrics:    (hours=6)     => req('GET', `/metrics/links?hours=${hours}`),
+  getTopTalkers:      ()            => req('GET', '/metrics/top-talkers'),
+  getMetricsSummary:  ()            => req('GET', '/metrics/summary'),
+
+  // Alert Rules
+  getAlertRules:    ()      => req('GET',    '/alert-rules'),
+  createAlertRule:  (body)  => req('POST',   '/alert-rules', body),
+  updateAlertRule:  (id, b) => req('PUT',    `/alert-rules/${id}`, b),
+  deleteAlertRule:  (id)    => req('DELETE', `/alert-rules/${id}`),
+
   // Network Map
   getPops:          ()      => req('GET',    '/map/pops'),
   createPop:        (body)  => req('POST',   '/map/pops', body),
