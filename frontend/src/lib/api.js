@@ -66,6 +66,13 @@ export const api = {
 
   // Ping
   ping: (ip) => req('GET', `/ping/${ip}`),
+
+  // Super Admin
+  superAdminStats:      ()           => req('GET', '/superadmin/stats'),
+  superAdminTenants:    ()           => req('GET', '/superadmin/tenants'),
+  superAdminActivate:   (id)         => req('PUT', `/superadmin/tenants/${id}/activate`),
+  superAdminSuspend:    (id)         => req('PUT', `/superadmin/tenants/${id}/suspend`),
+  superAdminChangePlan: (id, plan)   => req('PUT', `/superadmin/tenants/${id}/plan/${plan}`),
 }
 
 // ─── WebSocket (com tenant_id no token) ───────────────────────────────────────

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { api, setToken, getToken, createWS } from './api'
+import SuperAdminPage from './pages/SuperAdmin'
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 const C = {
@@ -879,6 +880,7 @@ export default function App() {
     {id:'links',    label:'Links'},
     {id:'users',    label:'Usuários', adminOnly:true},
     {id:'ai',       label:'⚡ Maxxi NOC'},
+    {id:'superadmin', label:'Super Admin', adminOnly:true},
   ].filter(t=>!t.adminOnly||user.role==='admin')
 
   const wsColor = wsStatus==='online'?C.green:wsStatus==='connecting'?C.amber:C.red
@@ -935,6 +937,7 @@ export default function App() {
         {tab==='links'    && <LinksPage    links={links} setLinks={setLinks} pingData={pingData} toast={toast} role={user.role}/>}
         {tab==='users'    && <UsersPage    toast={toast} role={user.role}/>}
         {tab==='ai'       && <AIPage devices={devices} links={links}/>}
+        {tab==='superadmin' && <SuperAdminPage toast={toast}/>}
       </div>
 
       <div style={{textAlign:'center',padding:14,color:C.border,fontSize:10,letterSpacing:2,fontFamily:"'Righteous',sans-serif"}}>
