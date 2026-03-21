@@ -1,0 +1,92 @@
+version: "3.9"
+
+# ─── NetWatch SaaS — Stack completa ───────────────────────────────────────────
+# Inclui: API, Frontend, Landing Page, PostgreSQL
+
+services:
+
+  # ── Landing page (HTML estático) ─────────────────────────────────────────────
+  landing:
+    image: nginx:alpine
+    container_name: netwatch-landing
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./landing:/usr/share/nginx/html:ro
+      - ./landing/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - netwatch
+
+  # ── Frontend React ───────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${API_URL:-http://localhost:8000}
+        VITE_WS_URL:  ${WS_URL:-ws://localhost:8000/ws}
+    container_name: netwatch-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - netwatch
+
+  # ── Backend API ──────────────────────────────────────────────────────────────
+  backend:
+    build: ./backend
+    container_name: netwatch-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL:          postgresql+asyncpg://${POSTGRES_USER:-netwatch}:${POSTGRES_PASSWORD:-netwatch123}@db:5432/${POSTGRES_DB:-netwatch}
+      SECRET_KEY:            ${SECRET_KEY:-dev-secret-troque-em-producao}
+      DEBUG:                 ${DEBUG:-false}
+      CORS_ORIGINS:          ${FRONTEND_URL:-http://localhost:3000},${LANDING_URL:-http://localhost:80}
+      APP_URL:               ${API_URL:-http://localhost:8000}
+      FRONTEND_URL:          ${FRONTEND_URL:-http://localhost:3000}
+      POLL_INTERVAL_FAST:    ${POLL_INTERVAL_FAST:-30}
+      POLL_INTERVAL_PING:    ${POLL_INTERVAL_PING:-10}
+      TRIAL_DAYS:            ${TRIAL_DAYS:-14}
+      # Stripe
+      STRIPE_SECRET_KEY:     ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_PRICE_STARTER:  ${STRIPE_PRICE_STARTER:-}
+      STRIPE_PRICE_PRO:      ${STRIPE_PRICE_PRO:-}
+      STRIPE_PRICE_ENTERPRISE: ${STRIPE_PRICE_ENTERPRISE:-}
+      # Mercado Pago
+      MP_ACCESS_TOKEN:       ${MP_ACCESS_TOKEN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - netwatch
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: netwatch-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-netwatch}
+      POSTGRES_USER:     ${POSTGRES_USER:-netwatch}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-netwatch123}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-netwatch}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - netwatch
+
+volumes:
+  db_data:
+
+networks:
+  netwatch:
+    driver: bridge
