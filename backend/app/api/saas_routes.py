@@ -261,7 +261,7 @@ async def get_payments(db: AsyncSession = Depends(get_db), user: dict = Depends(
 # ════════════════════════════════════════════════════════════════════════════
 
 @router.get("/superadmin/stats")
-async def superadmin_stats(db: AsyncSession = Depends(get_db), _=Depends(require_superadmin)):
+async def superadmin_stats(db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
     total_r   = await db.execute(select(func.count()).select_from(Tenant).where(Tenant.active == True))
     active_r  = await db.execute(select(func.count()).select_from(Tenant).where(Tenant.status == "active"))
     trial_r   = await db.execute(select(func.count()).select_from(Tenant).where(Tenant.status == "trial"))
@@ -275,7 +275,7 @@ async def superadmin_stats(db: AsyncSession = Depends(get_db), _=Depends(require
 
 
 @router.get("/superadmin/tenants")
-async def list_all_tenants(db: AsyncSession = Depends(get_db), _=Depends(require_superadmin)):
+async def list_all_tenants(db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
     r = await db.execute(select(Tenant).order_by(Tenant.created_at.desc()))
     tenants = r.scalars().all()
     result = []
@@ -288,7 +288,7 @@ async def list_all_tenants(db: AsyncSession = Depends(get_db), _=Depends(require
 
 
 @router.put("/superadmin/tenants/{tenant_id}/suspend")
-async def suspend_tenant(tenant_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_superadmin)):
+async def suspend_tenant(tenant_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
     t = await db.get(Tenant, tenant_id)
     if not t: raise HTTPException(404, "Tenant não encontrado")
     t.status = "suspended"; await db.commit()
@@ -296,7 +296,7 @@ async def suspend_tenant(tenant_id: int, db: AsyncSession = Depends(get_db), _=D
 
 
 @router.put("/superadmin/tenants/{tenant_id}/activate")
-async def activate_tenant(tenant_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_superadmin)):
+async def activate_tenant(tenant_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
     t = await db.get(Tenant, tenant_id)
     if not t: raise HTTPException(404, "Tenant não encontrado")
     t.status = "active"; await db.commit()
@@ -304,7 +304,7 @@ async def activate_tenant(tenant_id: int, db: AsyncSession = Depends(get_db), _=
 
 
 @router.put("/superadmin/tenants/{tenant_id}/plan/{plan_name}")
-async def change_plan(tenant_id: int, plan_name: str, db: AsyncSession = Depends(get_db), _=Depends(require_superadmin)):
+async def change_plan(tenant_id: int, plan_name: str, db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
     t = await db.get(Tenant, tenant_id)
     if not t: raise HTTPException(404)
     p_r = await db.execute(select(Plan).where(Plan.name == plan_name))
@@ -313,6 +313,52 @@ async def change_plan(tenant_id: int, plan_name: str, db: AsyncSession = Depends
     t.plan_id = p.id; await db.commit()
     return {"ok": True}
 
+
+
+
+# ─── Mercado Pago Checkout ────────────────────────────────────────────────────
+@router.post("/public/mp-checkout/{plan_name}")
+async def mp_checkout(
+    plan_name: str,
+    db: AsyncSession = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """Cria link de pagamento recorrente no Mercado Pago."""
+    tenant_id = get_tenant_id(user)
+    tenant = await db.get(Tenant, tenant_id)
+    if not tenant:
+        raise HTTPException(404, "Tenant não encontrado")
+
+    plan_r = await db.execute(select(Plan).where(Plan.name == plan_name))
+    plan   = plan_r.scalar_one_or_none()
+    if not plan:
+        raise HTTPException(404, f"Plano '{plan_name}' não encontrado")
+
+    if mp_service.available:
+        try:
+            url = await mp_service.create_preference(
+                tenant=tenant,
+                plan=plan,
+                back_urls={
+                    "success": f"{settings.FRONTEND_URL}/billing/success",
+                    "failure": f"{settings.FRONTEND_URL}/billing",
+                    "pending": f"{settings.FRONTEND_URL}/billing",
+                }
+            )
+            return {"checkout_url": url, "method": "mercadopago"}
+        except Exception as e:
+            raise HTTPException(503, f"Erro Mercado Pago: {e}")
+
+    # Fallback: Stripe
+    if stripe_service.available:
+        url = await stripe_service.create_checkout_session(
+            tenant=tenant, plan_name=plan_name,
+            success_url=f"{settings.FRONTEND_URL}/billing/success",
+            cancel_url=f"{settings.FRONTEND_URL}/billing",
+        )
+        return {"checkout_url": url, "method": "stripe"}
+
+    raise HTTPException(503, "Nenhum gateway de pagamento configurado. Entre em contato: (84) 2018-2178")
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 def _plan_dict(p: Plan) -> dict:

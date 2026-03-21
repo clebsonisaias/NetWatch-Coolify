@@ -14,6 +14,7 @@ async def get_db():
         yield s
 
 async def init_db():
+    from app.models import network  # noqa
     # importa todos os modelos para garantir que as tabelas sejam criadas
     from app.models import saas  # noqa
     async with engine.begin() as conn:

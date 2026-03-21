@@ -6,10 +6,12 @@ from loguru import logger
 
 from app.core.config import settings
 from app.models.database import init_db, AsyncSessionLocal, Device, User
+from app.models import network  # noqa - ensure tables created
 from app.models.saas import Tenant, Plan
-from app.core.auth import hash_password, create_superadmin_token
+from app.core.auth import hash_password, create_token, create_superadmin_token
 from app.api.routes import router, broadcast
 from app.api.saas_routes import router as saas_router
+from app.api.network_routes import router as network_router
 from app.saas.plans import seed_plans
 from sqlalchemy import select
 
@@ -110,8 +112,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router,      prefix="/api")
-app.include_router(saas_router, prefix="/api")
+app.include_router(router,        prefix="/api")
+app.include_router(saas_router,   prefix="/api")
+app.include_router(network_router, prefix="/api")
 
 @app.get("/")
 async def root():

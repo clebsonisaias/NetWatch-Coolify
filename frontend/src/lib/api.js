@@ -67,6 +67,22 @@ export const api = {
   // Ping
   ping: (ip) => req('GET', `/ping/${ip}`),
 
+  // Network Map
+  getPops:          ()      => req('GET',    '/map/pops'),
+  createPop:        (body)  => req('POST',   '/map/pops', body),
+  updatePop:        (id, b) => req('PUT',    `/map/pops/${id}`, b),
+  deletePop:        (id)    => req('DELETE', `/map/pops/${id}`),
+  getFibers:        ()      => req('GET',    '/map/fibers'),
+  createFiber:      (body)  => req('POST',   '/map/fibers', body),
+  updateFiber:      (id, b) => req('PUT',    `/map/fibers/${id}`, b),
+  deleteFiber:      (id)    => req('DELETE', `/map/fibers/${id}`),
+  getMapAlerts:     ()      => req('GET',    '/map/alerts'),
+  resolveMapAlert:  (id)    => req('PATCH',  `/map/alerts/${id}/resolve`),
+  getMapSummary:    ()      => req('GET',    '/map/summary'),
+
+  // Mercado Pago
+  mpCheckout:       (plan)  => req('POST',   `/public/mp-checkout/${plan}`),
+
   // Super Admin
   superAdminStats:      ()           => req('GET', '/superadmin/stats'),
   superAdminTenants:    ()           => req('GET', '/superadmin/tenants'),
